@@ -7,19 +7,19 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>黑白棋<span class="subtitle"> - 鬼殺隊 vs 鬼 -</span></h1>
+    <h1>黑白棋 (Reversi)</h1>
     <div id="game-info">
-        <div id="player-turn">輪到：<span class="disc black" data-player="black"></span></div>
+        <div id="player-turn">輪到：<span class="disc black"></span></div>
         <div id="score">
-            <span class="disc black" data-player="black"></span> <span id="black-score">2</span> - 
-            <span id="white-score">2</span> <span class="disc white" data-player="white"></span>
+            <span class="disc black"></span> <span id="black-score">2</span> - 
+            <span id="white-score">2</span> <span class="disc white"></span>
         </div>
     </div>
-    <div id="game-mode-selector">
-        <label><input type="radio" name="game-mode" value="pvp" checked> 玩家 vs 玩家</label>
-        <label><input type="radio" name="game-mode" value="pvc"> 玩家 vs 電腦</label>
-    </div>
-    <div id="game-board"></div>
+        <div id="game-mode-selector">
+            <label><input type="radio" name="game-mode" value="pvp" checked> 玩家 vs 玩家</label>
+            <label><input type="radio" name="game-mode" value="pvc"> 玩家 vs 電腦</label>
+        </div>
+        <div id="game-board"></div>
     <button id="reset-button">重新開始</button>
 
     <script src="script.js"></script>

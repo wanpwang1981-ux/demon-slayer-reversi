@@ -8,8 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const BOARD_SIZE = 8;
     const EMPTY = 0;
-    const BLACK = 1;
-    const WHITE = 2;
+    const BLACK = 1; // 鬼殺隊
+    const WHITE = 2; // 鬼
 
     let board = [];
     let currentPlayer = BLACK;
@@ -49,14 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderBoard() {
         boardElement.innerHTML = '';
-        const isFirstRender = !boardElement.hasChildNodes();
-
         for (let r = 0; r < BOARD_SIZE; r++) {
             for (let c = 0; c < BOARD_SIZE; c++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 cell.dataset.row = r;
                 cell.dataset.col = c;
+
                 if (board[r][c] !== EMPTY) {
                     const disc = document.createElement('div');
                     disc.className = `disc ${board[r][c] === BLACK ? 'black' : 'white'}`;
@@ -86,42 +85,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return; // 無效的落子位置
         }
 
-        // 放置新棋子
-        board[row][col] = currentPlayer;
-        
         // 落子並翻轉棋子
+        board[row][col] = currentPlayer;
         piecesToFlip.forEach(p => {
             board[p.r][p.c] = currentPlayer;
         });
 
-        // 優化渲染：只更新變動的棋子，而不是重繪整個棋盤
-        updateBoardDOM(row, col, piecesToFlip);
-
+        renderBoard();
         switchPlayer();
-    }
-
-    function updateBoardDOM(newPieceRow, newPieceCol, flippedPieces) {
-        // 放置新棋子
-        const newCell = boardElement.querySelector(`[data-row='${newPieceRow}'][data-col='${newPieceCol}']`);
-        const newDisc = document.createElement('div');
-        newDisc.className = `disc ${currentPlayer === BLACK ? 'black' : 'white'} new`;
-        newCell.appendChild(newDisc);
-
-        // 翻轉棋子
-        flippedPieces.forEach(p => {
-            const cellToFlip = boardElement.querySelector(`[data-row='${p.r}'][data-col='${p.c}']`);
-            const discToFlip = cellToFlip.querySelector('.disc');
-            if (discToFlip) {
-                // 觸發翻轉動畫，並在動畫結束後更新顏色
-                discToFlip.classList.add('flipping');
-                setTimeout(() => {
-                    discToFlip.className = `disc ${currentPlayer === BLACK ? 'black' : 'white'}`;
-                }, 250); // 在動畫中點切換顏色
-            }
-        });
-
-        // 更新分數
-        setTimeout(updateInfo, 500); // 等待動畫結束後更新分數
     }
 
     function getFlippablePieces(row, col, player) {
@@ -133,14 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let r = row + dir.r;
             let c = col + dir.c;
 
-            // 尋找對手的棋子
             while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === opponent) {
                 piecesInLine.push({ r, c });
                 r += dir.r;
                 c += dir.c;
             }
 
-            // 如果線的末端是自己的棋子，則中間的棋子都可以翻轉
             if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === player) {
                 flippablePieces = flippablePieces.concat(piecesInLine);
             }
@@ -152,10 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPlayer = (currentPlayer === BLACK) ? WHITE : BLACK;
         
         if (!hasValidMoves(currentPlayer)) {
-            // 如果當前玩家無處可下，再次切換
             currentPlayer = (currentPlayer === BLACK) ? WHITE : BLACK;
             if (!hasValidMoves(currentPlayer)) {
-                // 雙方都無處可下，遊戲結束
                 endGame();
                 return;
             } else {
@@ -164,9 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         updateInfo();
 
-        // 如果是電腦回合，觸發AI
         if (gameMode === 'pvc' && currentPlayer === WHITE) {
-            setTimeout(computerMove, 500); // 延遲500毫秒，模擬思考
+            setTimeout(computerMove, 500);
         }
     }
 
@@ -185,22 +151,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hasValidMoves(WHITE)) return;
 
         let bestMove = null;
-        let maxFlipped = -1;
+        let bestScore = -Infinity;
 
-        // 遍歷所有可能的落子點
         for (let r = 0; r < BOARD_SIZE; r++) {
             for (let c = 0; c < BOARD_SIZE; c++) {
                 if (board[r][c] === EMPTY) {
                     const piecesToFlip = getFlippablePieces(r, c, WHITE);
-                    if (piecesToFlip.length > maxFlipped) {
-                        maxFlipped = piecesToFlip.length;
-                        bestMove = { r, c };
+                    if (piecesToFlip.length > 0) {
+                        const moveScore = positionalWeights[r][c] + piecesToFlip.length;
+                        if (moveScore > bestScore) {
+                            bestScore = moveScore;
+                            bestMove = { r, c };
+                        }
                     }
                 }
             }
         }
 
-        // 執行最佳移動
         if (bestMove) {
             const { r, c } = bestMove;
             const piecesToFlip = getFlippablePieces(r, c, WHITE);
@@ -210,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 board[p.r][p.c] = WHITE;
             });
 
-            updateBoardDOM(r, c, piecesToFlip);
+            renderBoard();
             switchPlayer();
         }
     }
@@ -243,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             message += '平手！';
         }
-        setTimeout(() => alert(message), 100); // 延遲一點，讓畫面先更新
+        setTimeout(() => alert(message), 100);
     }
 
     resetButton.addEventListener('click', initializeGame);
@@ -251,6 +218,5 @@ document.addEventListener('DOMContentLoaded', () => {
         radio.addEventListener('change', initializeGame);
     });
 
-    // 初始化遊戲
     initializeGame();
 });
