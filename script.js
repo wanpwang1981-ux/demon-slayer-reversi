@@ -49,13 +49,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderBoard() {
         boardElement.innerHTML = '';
+        const isFirstRender = !boardElement.hasChildNodes();
+
         for (let r = 0; r < BOARD_SIZE; r++) {
             for (let c = 0; c < BOARD_SIZE; c++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 cell.dataset.row = r;
                 cell.dataset.col = c;
-
                 if (board[r][c] !== EMPTY) {
                     const disc = document.createElement('div');
                     disc.className = `disc ${board[r][c] === BLACK ? 'black' : 'white'}`;
@@ -85,14 +86,42 @@ document.addEventListener('DOMContentLoaded', () => {
             return; // 無效的落子位置
         }
 
-        // 落子並翻轉棋子
+        // 放置新棋子
         board[row][col] = currentPlayer;
+        
+        // 落子並翻轉棋子
         piecesToFlip.forEach(p => {
             board[p.r][p.c] = currentPlayer;
         });
 
-        renderBoard();
+        // 優化渲染：只更新變動的棋子，而不是重繪整個棋盤
+        updateBoardDOM(row, col, piecesToFlip);
+
         switchPlayer();
+    }
+
+    function updateBoardDOM(newPieceRow, newPieceCol, flippedPieces) {
+        // 放置新棋子
+        const newCell = boardElement.querySelector(`[data-row='${newPieceRow}'][data-col='${newPieceCol}']`);
+        const newDisc = document.createElement('div');
+        newDisc.className = `disc ${currentPlayer === BLACK ? 'black' : 'white'} new`;
+        newCell.appendChild(newDisc);
+
+        // 翻轉棋子
+        flippedPieces.forEach(p => {
+            const cellToFlip = boardElement.querySelector(`[data-row='${p.r}'][data-col='${p.c}']`);
+            const discToFlip = cellToFlip.querySelector('.disc');
+            if (discToFlip) {
+                // 觸發翻轉動畫，並在動畫結束後更新顏色
+                discToFlip.classList.add('flipping');
+                setTimeout(() => {
+                    discToFlip.className = `disc ${currentPlayer === BLACK ? 'black' : 'white'}`;
+                }, 250); // 在動畫中點切換顏色
+            }
+        });
+
+        // 更新分數
+        setTimeout(updateInfo, 500); // 等待動畫結束後更新分數
     }
 
     function getFlippablePieces(row, col, player) {
@@ -130,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 endGame();
                 return;
             } else {
-                alert(`${currentPlayer === BLACK ? '白方' : '黑方'}無棋可下，跳過回合。`);
+                alert(`${currentPlayer === BLACK ? '鬼' : '鬼殺隊'}無棋可下，跳過回合。`);
             }
         }
         updateInfo();
@@ -181,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 board[p.r][p.c] = WHITE;
             });
 
-            renderBoard();
+            updateBoardDOM(r, c, piecesToFlip);
             switchPlayer();
         }
     }
